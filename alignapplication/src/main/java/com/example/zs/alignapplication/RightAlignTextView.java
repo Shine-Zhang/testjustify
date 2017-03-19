@@ -1,12 +1,15 @@
-package com.example.zs.mttextview;
+package com.example.zs.testTextView;
 
 import android.content.Context;
 import android.graphics.Paint;
+import android.graphics.Rect;
 import android.text.TextPaint;
 import android.util.AttributeSet;
 import android.widget.TextView;
 
+import java.io.InputStream;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -39,6 +42,8 @@ public class RightAlignTextView extends TextView {
     private int lineSpacingDP = 5;
 
     private float SPACE_WIDTH = paint.measureText(" ");
+
+    private final static String TOTAL_HEIGHT = "totalHight";
 
     private List<String> wordList = new LinkedList<>();
     public RightAlignTextView(Context context) {
@@ -106,28 +111,32 @@ public class RightAlignTextView extends TextView {
     }
 
     private int measureContentHeight(int width) {
-        int drawWidth;
-        int drawHight;
         int totalHight = 0;
-
+        HashMap<String,Integer> heightParam = new HashMap<>();
+        lineBreak(heightParam, width);
+        totalHight = heightParam.get(TOTAL_HEIGHT);
         return totalHight;
     }
 
-    private  List<String> lineBreak(List<String> words, Paint paint, float contentWidth){
+    private  List<String> lineBreak(HashMap<String,Integer> finalHeight , int contentWidth){
 
         List<String> lineList = new LinkedList<>();
         List<String> lineWords = new LinkedList<>();
-        String myText="";
+        int lineMaxHeight = 0;
+        int totalHight = 0;
         float lineAcc = 0;
         boolean isLineHead = true;
         float tmpAcc;
-        for(int i = 0; i < words.size() ; i++){
+        for(int i = 0; i < wordList.size() ; i++){
+            Rect rect = new Rect();
+            paint.getTextBounds(wordList.get(i),0,1,rect);
+            lineMaxHeight = rect.height() > lineMaxHeight ? rect.height() : lineMaxHeight;
             String increment;
             if(isLineHead) {
                 isLineHead = false;
-                increment = words.get(i);
+                increment = wordList.get(i);
             } else {
-                increment = " " + words.get(i);
+                increment = " " + wordList.get(i);
             }
             float increLength = paint.measureText(increment);
             tmpAcc = lineAcc + increLength;
@@ -140,10 +149,18 @@ public class RightAlignTextView extends TextView {
                 i--;
                 lineWords = new LinkedList<>();
                 lineAcc = 0;
+                totalHight += lineMaxHeight;
+                lineMaxHeight = 0;
                 isLineHead = true;
             }
         }
-        lineList.add(myText);
+        if(0 != lineAcc) {
+            //处理最后一行
+            int totalSpacesToInsert = (int)((contentWidth-lineAcc / SPACE_WIDTH));
+            lineList.add(justifyLine(lineWords, totalSpacesToInsert));
+            totalHight += lineMaxHeight;
+        }
+        finalHeight.put(TOTAL_HEIGHT, totalHight);
         return lineList;
     }
 
