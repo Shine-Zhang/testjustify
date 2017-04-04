@@ -17,7 +17,7 @@ import java.util.List;
 
 public class ClientConnect {
     private static final String TAG = "ClientConnect";
-    private static final String name = "com.repackaging.localsocket";
+    private static final String name = "transmit";
     private LocalSocket Client = null;
     private OutputStream os = null;
     private InputStream is = null;
@@ -26,10 +26,25 @@ public class ClientConnect {
 
     public void connect(){
         try {
-            Client = new LocalSocket();
-            Client.connect(new LocalSocketAddress(name));
-            Client.setSoTimeout(timeout);
-            closeables.add(Client);
+            if(Client != null) {
+                if(!Client.isConnected()) {
+                    if(!Client.isClosed()) {
+                        Client.close();
+                    } else {
+                        Client = new LocalSocket();
+                        closeables.add(Client);
+                        Client.connect(new LocalSocketAddress(name));
+                        Client.setSoTimeout(timeout);
+                        closeables.add(Client);
+                    }
+                }
+            } else {
+                Client = new LocalSocket();
+                closeables.add(Client);
+                Client.connect(new LocalSocketAddress(name));
+                Client.setSoTimeout(timeout);
+                closeables.add(Client);
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -42,8 +57,6 @@ public class ClientConnect {
             Log.d(TAG,"send");
         } catch (IOException e) {
             e.printStackTrace();
-        }finally {
-            Util.closeQuietly(os);
         }
     }
 
@@ -54,11 +67,22 @@ public class ClientConnect {
         } catch (IOException e) {
             e.printStackTrace();
             return null;
-        } finally {
-            Util.closeQuietly(is);
         }
         return is;
     }
+
+    public void closeAll() {
+        for(Closeable closeable : closeables) {
+            try {
+                closeable.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        closeables.clear();
+    }
+
+
 
 
 }
